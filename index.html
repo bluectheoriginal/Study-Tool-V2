@@ -1,15 +1,32 @@
 <script>
-    console.log('Frontend loaded!');
+    console.log('🔍 Frontend loaded, testing connection...');
     
-    // Test if server is responding
     fetch('/api/test')
-        .then(response => response.json())
+        .then(response => {
+            console.log('📡 Response status:', response.status, response.statusText);
+            console.log('📡 Response headers:', response.headers.get('content-type'));
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            // Check if response is JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                return response.text().then(text => {
+                    console.error('❌ Expected JSON but got:', text.substring(0, 200));
+                    throw new Error('Server returned HTML instead of JSON');
+                });
+            }
+            
+            return response.json();
+        })
         .then(data => {
-            console.log('Server response:', data);
-            document.body.innerHTML = '<h1>Server is working! Check console.</h1>';
+            console.log('✅ Server response:', data);
+            document.body.innerHTML = '<h1 style="color: green;">✅ Server is working!</h1>';
         })
         .catch(error => {
-            console.error('Server error:', error);
-            document.body.innerHTML = '<h1>Server connection failed</h1>';
+            console.error('❌ Connection failed:', error);
+            document.body.innerHTML = '<h1 style="color: red;">❌ ' + error.message + '</h1>';
         });
 </script>
