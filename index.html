@@ -1,281 +1,717 @@
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Wait for DOM to be fully loaded
-        const teacherForm = document.getElementById('teacherForm');
-        const reviewForm = document.getElementById('reviewForm');
-        const teachersList = document.getElementById('teachersList');
-        const existingTeacherSelect = document.getElementById('existingTeacher');
-        const tabs = document.querySelectorAll('.tab');
-        const tabContents = document.querySelectorAll('.tab-content');
-        
-        // Check if elements exist
-        if (!teacherForm || !teachersList) {
-            console.error('Required DOM elements not found!');
-            return;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Rating System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        
-        const API_URL = window.location.origin + '/api';
-        
-        // Load teachers from API
-        loadTeachers();
-        
-        // Tab functionality
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                const tabId = tab.getAttribute('data-tab');
-                
-                // Update active tab
-                tabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                
-                // Update active content
-                tabContents.forEach(content => {
-                    content.classList.remove('active');
-                    if (content.id === tabId) {
-                        content.classList.add('active');
-                    }
-                });
-            });
-        });
-        
-        // Handle new teacher form submission
-        teacherForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const name = document.getElementById('teacherName').value;
-            const description = document.getElementById('teacherDescription').value;
-            const rating = document.querySelector('input[name="rating"]:checked');
-            const reason = document.getElementById('ratingReason').value;
-            
-            if (!rating) {
-                alert('Please select a rating');
-                return;
+
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+        }
+
+        .form-section {
+            flex: 1;
+            min-width: 300px;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .display-section {
+            flex: 2;
+            min-width: 300px;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+
+        h3 {
+            margin: 15px 0 10px;
+            color: #2c3e50;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .star-rating {
+            display: flex;
+            flex-direction: row-reverse;
+            justify-content: flex-end;
+            gap: 5px;
+            margin-bottom: 20px;
+        }
+
+        .star-rating input {
+            display: none;
+        }
+
+        .star-rating label {
+            font-size: 30px;
+            color: #ddd;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .star-rating label:hover,
+        .star-rating label:hover ~ label,
+        .star-rating input:checked ~ label {
+            color: #f1c40f;
+        }
+
+        .btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background 0.3s;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            background: #2980b9;
+        }
+
+        .btn-secondary {
+            background: #2ecc71;
+        }
+
+        .btn-secondary:hover {
+            background: #27ae60;
+        }
+
+        .teacher-card {
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            border-left: 4px solid #3498db;
+            transition: all 0.3s ease;
+        }
+
+        .teacher-card.highlight {
+            animation: highlight 2s ease;
+            border-left: 4px solid #e74c3c;
+        }
+
+        @keyframes highlight {
+            0% { background-color: #fff9e6; }
+            50% { background-color: #fff0cc; }
+            100% { background-color: #f9f9f9; }
+        }
+
+        .teacher-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .teacher-name {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .teacher-rating {
+            display: flex;
+            align-items: center;
+        }
+
+        .rating-stars {
+            color: #f1c40f;
+            font-size: 1.2rem;
+            margin-right: 10px;
+        }
+
+        .rating-value {
+            background: #3498db;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .teacher-description {
+            margin-bottom: 15px;
+            color: #555;
+        }
+
+        .teacher-reason {
+            background: #eef5ff;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-style: italic;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            display: none;
+        }
+
+        .teacher-reason.show {
+            display: block;
+        }
+
+        .reviews-count {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        .review-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .review-date {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #7f8c8d;
+        }
+
+        .empty-state i {
+            font-size: 50px;
+            margin-bottom: 15px;
+            color: #bdc3c7;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background: #f1f1f1;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            border-radius: 5px 5px 0 0;
+            margin-right: 5px;
+        }
+
+        .tab.active {
+            background: white;
+            border-bottom: 1px solid white;
+            margin-bottom: -1px;
+            font-weight: bold;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .toggle-reviews {
+            background: #95a5a6;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+
+        .toggle-reviews:hover {
+            background: #7f8c8d;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
             }
             
-            try {
-                const response = await fetch(`${API_URL}/teachers`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        name: name,
-                        description: description,
-                        rating: parseInt(rating.value),
-                        reason: reason
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (!response.ok) {
-                    if (result.error === 'Teacher already exists') {
-                        // Highlight the existing teacher
-                        highlightTeacher(result.teacherId);
-                        alert('This teacher already exists. Please use the "Add Review" tab to add another review.');
-                    } else {
-                        alert('Error: ' + result.error);
-                    }
-                    return;
-                }
-                
-                // Re-render the list
-                loadTeachers();
-                updateTeacherSelect();
-                
-                // Reset form
-                teacherForm.reset();
-                
-                // Switch to add review tab
-                tabs[1].click();
-                
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error adding teacher. Please try again.');
-            }
-        });
-        
-        // Handle review form submission
-        reviewForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const teacherId = existingTeacherSelect.value;
-            const rating = document.querySelector('input[name="review-rating"]:checked');
-            const reason = document.getElementById('reviewReason').value;
-            
-            if (!rating) {
-                alert('Please select a rating');
-                return;
+            h1 {
+                font-size: 2rem;
             }
             
-            if (!teacherId) {
-                alert('Please select a teacher');
-                return;
+            .teacher-header {
+                flex-direction: column;
+                align-items: flex-start;
             }
             
-            try {
-                const response = await fetch(`${API_URL}/teachers/${teacherId}/reviews`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        rating: parseInt(rating.value),
-                        reason: reason
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (!response.ok) {
-                    alert('Error: ' + result.error);
-                    return;
-                }
-                
-                // Re-render the list
-                loadTeachers();
-                
-                // Reset form
-                reviewForm.reset();
-                
-                alert('Review added successfully!');
-                
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error adding review. Please try again.');
+            .teacher-rating {
+                margin-top: 10px;
             }
-        });
-        
-        async function loadTeachers() {
-            try {
-                const response = await fetch(`${API_URL}/teachers`);
-                const teachers = await response.json();
-                renderTeachers(teachers);
-                updateTeacherSelect(teachers);
-            } catch (error) {
-                console.error('Error loading teachers:', error);
-                if (teachersList) {
-                    teachersList.innerHTML = `
-                        <div class="empty-state">
-                            <i>⚠️</i>
-                            <h3>Error loading teachers</h3>
-                            <p>Please check if the server is running</p>
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Teacher Rating System</h1>
+            <p class="subtitle">Rate teachers and see combined ratings from all reviews</p>
+        </header>
+
+        <div class="main-content">
+            <section class="form-section">
+                <div class="tabs">
+                    <div class="tab active" data-tab="new-teacher">Add New Teacher</div>
+                    <div class="tab" data-tab="add-review">Add Review</div>
+                </div>
+
+                <div class="tab-content active" id="new-teacher">
+                    <h2>Add New Teacher</h2>
+                    <form id="teacherForm">
+                        <div class="form-group">
+                            <label for="teacherName">Full Name</label>
+                            <input type="text" id="teacherName" placeholder="Enter teacher's name" required>
                         </div>
-                    `;
-                }
-            }
-        }
-        
-        function renderTeachers(teachers) {
-            if (!teachersList) {
-                console.error('teachersList element not found');
-                return;
-            }
-            
-            if (teachers.length === 0) {
-                teachersList.innerHTML = `
+
+                        <div class="form-group">
+                            <label for="teacherDescription">Brief Description</label>
+                            <textarea id="teacherDescription" placeholder="Describe this teacher..." required></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Your Rating (1-5 stars)</label>
+                            <div class="star-rating">
+                                <input type="radio" id="star5" name="rating" value="5">
+                                <label for="star5">★</label>
+                                <input type="radio" id="star4" name="rating" value="4">
+                                <label for="star4">★</label>
+                                <input type="radio" id="star3" name="rating" value="3">
+                                <label for="star3">★</label>
+                                <input type="radio" id="star2" name="rating" value="2">
+                                <label for="star2">★</label>
+                                <input type="radio" id="star1" name="rating" value="1">
+                                <label for="star1">★</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ratingReason">Reason for Rating</label>
+                            <textarea id="ratingReason" placeholder="Why did you give this rating?" required></textarea>
+                        </div>
+
+                        <button type="submit" class="btn">Add Teacher</button>
+                    </form>
+                </div>
+
+                <div class="tab-content" id="add-review">
+                    <h2>Add Review to Existing Teacher</h2>
+                    <form id="reviewForm">
+                        <div class="form-group">
+                            <label for="existingTeacher">Select Teacher</label>
+                            <select id="existingTeacher" required>
+                                <option value="">Select a teacher</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Your Rating (1-5 stars)</label>
+                            <div class="star-rating">
+                                <input type="radio" id="review-star5" name="review-rating" value="5">
+                                <label for="review-star5">★</label>
+                                <input type="radio" id="review-star4" name="review-rating" value="4">
+                                <label for="review-star4">★</label>
+                                <input type="radio" id="review-star3" name="review-rating" value="3">
+                                <label for="review-star3">★</label>
+                                <input type="radio" id="review-star2" name="review-rating" value="2">
+                                <label for="review-star2">★</label>
+                                <input type="radio" id="review-star1" name="review-rating" value="1">
+                                <label for="review-star1">★</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="reviewReason">Reason for Rating</label>
+                            <textarea id="reviewReason" placeholder="Why did you give this rating?" required></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-secondary">Add Review</button>
+                    </form>
+                </div>
+            </section>
+
+            <section class="display-section">
+                <h2>Rated Teachers</h2>
+                <div id="teachersList">
                     <div class="empty-state">
                         <i>★</i>
                         <h3>No teachers added yet</h3>
                         <p>Add your first teacher using the form on the left</p>
                     </div>
-                `;
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing app...');
+            
+            const teacherForm = document.getElementById('teacherForm');
+            const reviewForm = document.getElementById('reviewForm');
+            const teachersList = document.getElementById('teachersList');
+            const existingTeacherSelect = document.getElementById('existingTeacher');
+            const tabs = document.querySelectorAll('.tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            // Check if elements exist
+            if (!teacherForm || !reviewForm || !teachersList || !existingTeacherSelect) {
+                console.error('Missing required elements:', {
+                    teacherForm: !!teacherForm,
+                    reviewForm: !!reviewForm,
+                    teachersList: !!teachersList,
+                    existingTeacherSelect: !!existingTeacherSelect
+                });
                 return;
             }
             
-            // Sort by rating (highest first)
-            teachers.sort((a, b) => b.avgRating - a.avgRating);
+            console.log('All DOM elements found, starting app...');
             
-            // Generate HTML for each teacher
-            teachersList.innerHTML = teachers.map(teacher => `
-                <div class="teacher-card" id="teacher-${teacher.id}">
-                    <div class="teacher-header">
-                        <div class="teacher-name">${teacher.name}</div>
-                        <div class="teacher-rating">
-                            <div class="rating-stars">${getStarRating(teacher.avgRating)}</div>
-                            <div class="rating-value">${teacher.avgRating}/5</div>
-                        </div>
-                    </div>
-                    <div class="teacher-description">${teacher.description}</div>
-                    <div class="reviews-count">Based on ${teacher.reviews.length} review(s)</div>
-                    
-                    <button class="toggle-reviews" data-teacher-id="${teacher.id}">Show Reviews</button>
-                    
-                    <div class="reviews-container" id="reviews-${teacher.id}">
-                        ${teacher.reviews.map(review => `
-                            <div class="teacher-reason">
-                                <div class="review-header">
-                                    <div class="rating-stars">${'★'.repeat(review.rating)}${'☆'.repeat(5-review.rating)}</div>
-                                    <div class="review-date">${review.date}</div>
-                                </div>
-                                "${review.reason}"
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            `).join('');
+            const API_URL = window.location.origin;
             
-            // Add event listeners to toggle buttons
-            document.querySelectorAll('.toggle-reviews').forEach(button => {
-                button.addEventListener('click', function() {
-                    const teacherId = this.getAttribute('data-teacher-id');
-                    const reviewsContainer = document.getElementById(`reviews-${teacherId}`);
-                    const reviews = reviewsContainer.querySelectorAll('.teacher-reason');
+            // Load teachers from API
+            loadTeachers();
+            
+            // Tab functionality
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabId = tab.getAttribute('data-tab');
                     
-                    // Toggle visibility of reviews
-                    reviews.forEach(review => {
-                        review.classList.toggle('show');
+                    // Update active tab
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    // Update active content
+                    tabContents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === tabId) {
+                            content.classList.add('active');
+                        }
                     });
-                    
-                    // Update button text
-                    this.textContent = reviews[0].classList.contains('show') ? 'Hide Reviews' : 'Show Reviews';
                 });
             });
-        }
-        
-        function updateTeacherSelect(teachers) {
-            if (!existingTeacherSelect) {
-                console.error('existingTeacherSelect element not found');
-                return;
-            }
             
-            // Clear existing options
-            existingTeacherSelect.innerHTML = '<option value="">Select a teacher</option>';
-            
-            // Add teachers to dropdown
-            teachers.forEach(teacher => {
-                const option = document.createElement('option');
-                option.value = teacher.id;
-                option.textContent = `${teacher.name} (Current: ${teacher.avgRating}/5)`;
+            // Handle new teacher form submission
+            teacherForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
                 
-                existingTeacherSelect.appendChild(option);
+                const name = document.getElementById('teacherName').value;
+                const description = document.getElementById('teacherDescription').value;
+                const rating = document.querySelector('input[name="rating"]:checked');
+                const reason = document.getElementById('ratingReason').value;
+                
+                if (!rating) {
+                    alert('Please select a rating');
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`${API_URL}/api/teachers`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            name: name,
+                            description: description,
+                            rating: parseInt(rating.value),
+                            reason: reason
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (!response.ok) {
+                        if (result.error === 'Teacher already exists') {
+                            highlightTeacher(result.teacherId);
+                            alert('This teacher already exists. Please use the "Add Review" tab to add another review.');
+                        } else {
+                            alert('Error: ' + result.error);
+                        }
+                        return;
+                    }
+                    
+                    // Re-render the list
+                    loadTeachers();
+                    updateTeacherSelect();
+                    
+                    // Reset form
+                    teacherForm.reset();
+                    
+                    // Switch to add review tab
+                    tabs[1].click();
+                    
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error adding teacher. Please try again.');
+                }
             });
-        }
-        
-        function getStarRating(avgRating) {
-            const fullStars = Math.floor(avgRating);
-            const halfStar = avgRating % 1 >= 0.5;
-            const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
             
-            return '★'.repeat(fullStars) + (halfStar ? '½' : '') + '☆'.repeat(emptyStars);
-        }
-        
-        function highlightTeacher(teacherId) {
-            // Find the teacher card
-            const teacherCard = document.getElementById(`teacher-${teacherId}`);
+            // Handle review form submission
+            reviewForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const teacherId = existingTeacherSelect.value;
+                const rating = document.querySelector('input[name="review-rating"]:checked');
+                const reason = document.getElementById('reviewReason').value;
+                
+                if (!rating) {
+                    alert('Please select a rating');
+                    return;
+                }
+                
+                if (!teacherId) {
+                    alert('Please select a teacher');
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`${API_URL}/api/teachers/${teacherId}/reviews`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            rating: parseInt(rating.value),
+                            reason: reason
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (!response.ok) {
+                        alert('Error: ' + result.error);
+                        return;
+                    }
+                    
+                    // Re-render the list
+                    loadTeachers();
+                    
+                    // Reset form
+                    reviewForm.reset();
+                    
+                    alert('Review added successfully!');
+                    
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error adding review. Please try again.');
+                }
+            });
             
-            if (teacherCard) {
-                // Add highlight class
-                teacherCard.classList.add('highlight');
-                
-                // Scroll to the teacher card
-                teacherCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                
-                // Remove highlight after animation completes
-                setTimeout(() => {
-                    teacherCard.classList.remove('highlight');
-                }, 2000);
+            async function loadTeachers() {
+                try {
+                    console.log('Loading teachers from:', `${API_URL}/api/teachers`);
+                    const response = await fetch(`${API_URL}/api/teachers`);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const teachers = await response.json();
+                    console.log('Loaded teachers:', teachers);
+                    renderTeachers(teachers);
+                    updateTeacherSelect(teachers);
+                } catch (error) {
+                    console.error('Error loading teachers:', error);
+                    teachersList.innerHTML = `
+                        <div class="empty-state">
+                            <i>⚠️</i>
+                            <h3>Error loading teachers</h3>
+                            <p>${error.message}</p>
+                        </div>
+                    `;
+                }
             }
-        }
-    });
-</script>
+            
+            function renderTeachers(teachers) {
+                if (teachers.length === 0) {
+                    teachersList.innerHTML = `
+                        <div class="empty-state">
+                            <i>★</i>
+                            <h3>No teachers added yet</h3>
+                            <p>Add your first teacher using the form on the left</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Sort by rating (highest first)
+                teachers.sort((a, b) => b.avgRating - a.avgRating);
+                
+                // Generate HTML for each teacher
+                teachersList.innerHTML = teachers.map(teacher => `
+                    <div class="teacher-card" id="teacher-${teacher.id}">
+                        <div class="teacher-header">
+                            <div class="teacher-name">${teacher.name}</div>
+                            <div class="teacher-rating">
+                                <div class="rating-stars">${getStarRating(teacher.avgRating)}</div>
+                                <div class="rating-value">${teacher.avgRating}/5</div>
+                            </div>
+                        </div>
+                        <div class="teacher-description">${teacher.description}</div>
+                        <div class="reviews-count">Based on ${teacher.reviews.length} review(s)</div>
+                        
+                        <button class="toggle-reviews" data-teacher-id="${teacher.id}">Show Reviews</button>
+                        
+                        <div class="reviews-container" id="reviews-${teacher.id}">
+                            ${teacher.reviews.map(review => `
+                                <div class="teacher-reason">
+                                    <div class="review-header">
+                                        <div class="rating-stars">${'★'.repeat(review.rating)}${'☆'.repeat(5-review.rating)}</div>
+                                        <div class="review-date">${review.date}</div>
+                                    </div>
+                                    "${review.reason}"
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('');
+                
+                // Add event listeners to toggle buttons
+                document.querySelectorAll('.toggle-reviews').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const teacherId = this.getAttribute('data-teacher-id');
+                        const reviewsContainer = document.getElementById(`reviews-${teacherId}`);
+                        const reviews = reviewsContainer.querySelectorAll('.teacher-reason');
+                        
+                        // Toggle visibility of reviews
+                        reviews.forEach(review => {
+                            review.classList.toggle('show');
+                        });
+                        
+                        // Update button text
+                        this.textContent = reviews[0].classList.contains('show') ? 'Hide Reviews' : 'Show Reviews';
+                    });
+                });
+            }
+            
+            function updateTeacherSelect(teachers) {
+                // Clear existing options
+                existingTeacherSelect.innerHTML = '<option value="">Select a teacher</option>';
+                
+                // Add teachers to dropdown
+                teachers.forEach(teacher => {
+                    const option = document.createElement('option');
+                    option.value = teacher.id;
+                    option.textContent = `${teacher.name} (Current: ${teacher.avgRating}/5)`;
+                    
+                    existingTeacherSelect.appendChild(option);
+                });
+            }
+            
+            function getStarRating(avgRating) {
+                const fullStars = Math.floor(avgRating);
+                const halfStar = avgRating % 1 >= 0.5;
+                const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+                
+                return '★'.repeat(fullStars) + (halfStar ? '½' : '') + '☆'.repeat(emptyStars);
+            }
+            
+            function highlightTeacher(teacherId) {
+                // Find the teacher card
+                const teacherCard = document.getElementById(`teacher-${teacherId}`);
+                
+                if (teacherCard) {
+                    // Add highlight class
+                    teacherCard.classList.add('highlight');
+                    
+                    // Scroll to the teacher card
+                    teacherCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    
+                    // Remove highlight after animation completes
+                    setTimeout(() => {
+                        teacherCard.classList.remove('highlight');
+                    }, 2000);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
